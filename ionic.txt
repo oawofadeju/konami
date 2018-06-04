@@ -1,3 +1,6 @@
+//1.  Write down a function, expressed either in C# or C++, that takes two inputs: * a two-dimensional array of values * a threshold T    and determines this output: * A list of (X,Y) value pairs that identify the center of mass of each region of interest.   (There will be one X,Y coordinate pair for each sub-region.)   Define "center of mass" for a given sub-region to be the average position, expressed in X,Y coordinates, of the cells in that sub-region, each cell's location being weighted by that cell's signal value. Feel free to express your response as compilable code.   (If you do, please include any make or project files.) 
+//2. Discuss a preferred strategy for testing the function you defined in part 1, including how you might automate the testing, how you would select test input cases (feel free to enumerate cases), and how you would determine whether each test case results in a pass or fail. 
+
 #include <bits/stdc++.h>
 #include <vector>
 #include <stack>
