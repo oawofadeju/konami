@@ -1,0 +1,291 @@
+#include <bits/stdc++.h>
+#include <vector>
+#include <stack>
+#include <string>
+
+using namespace std;
+#define X_SIZE 6
+#define Y_SIZE 6
+
+class Coordinate {
+	public:
+	int x;
+	int y;
+	
+	Coordinate(int xcoord, int ycoord): x(xcoord), y(ycoord) {}
+    
+	Coordinate() {}    
+};
+
+class CenterMassCoordinate : Coordinate {
+	public:
+	double x;
+	double y;
+	
+	CenterMassCoordinate(double xcoord, double ycoord): x(xcoord), y(ycoord) {}
+    
+	CenterMassCoordinate() {}  
+};
+
+class SubRegionList {
+	private:
+	vector<Coordinate> a;
+	
+	public:
+	void addCoordinate(Coordinate t) {
+		a.push_back(t);
+	}
+	
+	void print() {
+		for (int i=0; i < a.size(); i++) {
+			cout << "(" << a[i].x << ", " << a[i].y << ")" << " ";
+		}
+		cout << endl;
+	}
+	
+	//Initially tried on my own with paper and pen and came up with solution below
+	//Then looked online for a center of mass formula and wrote the function below it
+	//They both produce the same answers
+    
+    CenterMassCoordinate determineCenterOfMass(int arr[][Y_SIZE]) {
+        //returns a Coordinate as a center of mass calculation of this SubRegionList
+        //if empty list return error condition
+        if (a.empty()){
+			return CenterMassCoordinate(-1, -1);
+		}
+		int sum = 0;
+        double x = 0;
+        double y = 0;
+        CenterMassCoordinate massCoordinate;
+		
+		for (int i=0; i < a.size(); i++) {
+			sum += arr[a[i].x][a[i].y];
+		}
+        
+		for (int i=0; i < a.size(); i++) {
+			x += a[i].x*((double)arr[a[i].x][a[i].y]/sum);
+		}
+        
+		for (int i=0; i < a.size(); i++) {
+			y += a[i].y*((double)arr[a[i].x][a[i].y]/sum);
+		}
+        
+        massCoordinate.x = x;
+        massCoordinate.y = y;
+        
+        return massCoordinate;
+    }
+    
+    CenterMassCoordinate determineCenterOfMassFormula(int arr[][Y_SIZE]) {
+        //returns a Coordinate as a center of mass calculation of this SubRegionList
+        //if empty list return error condition
+        if (a.empty()){
+			return CenterMassCoordinate(-1, -1);
+		}		
+        int sum = 0;
+        double x = 0;
+        double y = 0;
+        CenterMassCoordinate massCoordinate;
+		for (int i=0; i < a.size(); i++) {
+			sum += arr[a[i].x][a[i].y];
+		}
+        
+		for (int i=0; i < a.size(); i++) {
+            x += (double)a[i].x*arr[a[i].x][a[i].y];
+		}
+        x = x/sum;
+        
+		for (int i=0; i < a.size(); i++) {
+			y += (double)a[i].y*arr[a[i].x][a[i].y];
+		}
+        y = y/sum;
+        
+        massCoordinate.x = x;
+        massCoordinate.y = y;
+        
+        return massCoordinate;
+    }    
+};
+
+vector<Coordinate> visitedList;
+
+bool operator== (const Coordinate& in, const Coordinate& out) {
+    if (in.x == out.x && in.y == out.y) {
+        return true;
+    }
+    return false;
+}
+
+bool hasCoordinateBeenVisited(Coordinate in) {
+    for (int k=0; k < visitedList.size(); k++) {
+        if (in == visitedList[k]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+vector<Coordinate> getFreshAdjacentCoordinates(int x, int y, int xend, int yend) {
+	//need to ensure bounds are considered and don't want to return current coodinate or already visited
+	vector<Coordinate> result;
+	for (int t = x-1; t <= x+1; t++) {
+		for (int z = y-1; z <= y+1; z++) {
+			//check if already analyzed such coordinate and if so skip
+			Coordinate current = Coordinate(t, z);
+			if (t < 0 || t >= xend || z < 0 || z >= yend || hasCoordinateBeenVisited(current)) {
+				continue;
+			}
+			result.push_back(current);
+			visitedList.push_back(current);
+		}
+	}
+	
+	return result;
+}
+
+void getCenterOfMassSubRegions(int a[][Y_SIZE], int xend, int yend, int threshold) {
+	//need end of x and y to determine dimensions of array
+	//needs to not crash on empty array
+    //assumption: size will be at least one element: xend and yend not equal to 0
+	vector<SubRegionList> subRegions;
+	
+	for (int x=0; x < xend; ++x) {
+		for (int y=0; y < yend; ++y) {
+			if (a[x][y] > threshold) {
+				//obtain list of sub region
+				//add current coordinate to subRegionList
+                //ensure not already visited
+                Coordinate current = Coordinate(x, y);
+                if (!hasCoordinateBeenVisited(current)) {
+                    SubRegionList lst;
+                    lst.addCoordinate(current);
+                    visitedList.push_back(current);
+                    //greedily find additional coordinates to add
+                    //get adjacent fields without current coordinate or any field already found greedily through routine
+                    stack<Coordinate> aliveList;
+                    aliveList.push(current);
+
+                    while(!aliveList.empty()) {
+                        Coordinate next = aliveList.top();
+                        aliveList.pop();
+
+                        vector<Coordinate> t = getFreshAdjacentCoordinates(next.x, next.y, xend, yend);
+                        //loop through the results
+                        int k = t.size();
+                        for (int i=0; i < k; ++i) {
+                            if (a[t[i].x][t[i].y] > threshold) {
+                                lst.addCoordinate(Coordinate(t[i].x, t[i].y));
+                                aliveList.push(Coordinate(t[i].x, t[i].y));
+                            }
+                        }
+                    }
+                    subRegions.push_back(lst);
+                }
+			}
+		}
+	}
+	
+	//print out center of mass for subregions
+	if (subRegions.empty()) {
+		cout << "No subregions exist. Please lower the threshold if possible." << endl;
+	} else {
+		for (int p=0; p < subRegions.size(); ++p) {
+			//CenterMassCoordinate cm1 = subRegions[p].determineCenterOfMass(a);
+			CenterMassCoordinate cm2 = subRegions[p].determineCenterOfMassFormula(a);
+			cout << "(" << cm2.x << ", " << cm2.y << ")" << " for subregion: ";
+			subRegions[p].print();
+		}
+	}
+    
+    //reset visitedList vector
+    visitedList.clear();
+}
+
+
+int main() {
+	
+    int a[X_SIZE][Y_SIZE] = {
+        {0, 115, 5, 15, 0, 5},
+        {80, 210, 0, 5, 5, 0},
+        {45, 60, 145, 175, 95, 25},
+        {95, 5, 250, 250, 115, 5},
+        {170, 230, 245, 185, 165, 145},
+        {145, 220, 140, 160, 250, 250}
+    };
+
+    int b[X_SIZE][Y_SIZE] = {
+        {0, 80, 45, 95, 170, 145},
+        {115, 210, 60, 5, 230, 220},
+        {5, 0, 145, 250, 245, 140},
+        {15, 5, 175, 250, 185, 160},
+        {0, 5, 95, 115, 165, 250},
+        {5, 0, 25, 5, 145, 250}
+    };  
+    int c[1][Y_SIZE] = {
+        {5, 0, 250, 300, 145, 250}
+    }; 
+    
+    int d[X_SIZE][1] = {
+        {5},
+        {0},
+        {250},
+        {300},
+        {145},
+        {250}
+    };      
+    
+    int e[X_SIZE][Y_SIZE] = {
+        {0, 0, 0, 0, 0, 260},
+        {0, 0, 0, 0, 300, 0},
+        {0, 0, 0, 250, 0, 0},
+        {0, 0, 300, 0, 0, 0},
+        {0, 201, 0, 0, 0, 0},
+        {250, 0, 0, 0, 0, 0}
+    };
+	
+    int f[X_SIZE][Y_SIZE] = {
+        {250, 0, 0, 0, 0, 250},
+        {0, 250, 0, 0, 250, 0},
+        {0, 0, 250, 250, 0, 0},
+        {0, 0, 250, 250, 0, 0},
+        {0, 250, 0, 0, 250, 0},
+        {250, 0, 0, 0, 0, 250}
+    };  	
+	
+    getCenterOfMassSubRegions(a, X_SIZE, Y_SIZE, 200);
+    cout << "-----------------------------------" << endl;
+	getCenterOfMassSubRegions(b, X_SIZE, Y_SIZE, 200);
+    cout << "-----------------------------------" << endl;
+    getCenterOfMassSubRegions(c, 1, Y_SIZE, 200);
+    cout << "-----------------------------------" << endl;
+    /*getCenterOfMassSubRegions(d, X_SIZE, Y_SIZE, 200);
+    cout << "-----------------------------------" << endl;*/
+    getCenterOfMassSubRegions(e, X_SIZE, Y_SIZE, 200);
+    cout << "-----------------------------------" << endl;
+    getCenterOfMassSubRegions(f, X_SIZE, Y_SIZE, 200);
+    cout << "-----------------------------------" << endl;		
+    return 0;
+}
+
+
+/*
+Problem 2:
+Testing
+
+If possible to unit test, then that would be great to ensure old cases consistently pass
+For automation, would need to use vector and random numbers to generate different size arrays dynamically and pass into function, however, not sure if possible etc to know the actual outcome expected
+Possibly use the results of the different subregions, find the max and min of x and y and ensure that the computed value is between calculations
+In unit testing, you have expected results based on human calculation to determine if pass or fail etc
+
+Test a single item in 2d array (expected result is obtained based on threshold value)
+Test diagnals only
+Test single row
+Test single column
+Ensure negatives are not expected for threshold
+Test various squares and rectangles
+Test no values over threshold in different variations of squares and rectangles
+Test values equal to threshold in different variations of squares and rectangles
+Test space limitations possibly based on device capabilities (greedy and uses more space for efficiency)
+
+*/
+
